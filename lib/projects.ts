@@ -1,10 +1,8 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import fs from 'fs'
+import path from 'path'
 import matter from 'gray-matter'
-import path from 'path';
 
-const rootDirectory = path.join(process.cwd(), 'content/projects');
-
+const rootDirectory = path.join(process.cwd(), 'content', 'projects')
 
 export type Project = {
   metadata: ProjectMetadata

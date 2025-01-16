@@ -14,18 +14,13 @@ export async function generateStaticParams() {
   return slugs
 }
 
-<<<<<<< HEAD
-export default async function Project({ 
-  params 
-}: { 
-  params: { slug: string };
- }) {
-  const { slug } = params;
-=======
-export default async function Project({ params }: { params: { slug: string } }) {
+export default async function Project({
+  params
+}: {
+  params: { slug: string }
+}) {
   const { slug } = await params;
->>>>>>> 94e487688119c17eaa694554d5db884ff5c8284d
-  const project = await getProjectBySlug(slug)
+  const project = await getProjectBySlug(slug);
 
   if (!project) {
     notFound()
