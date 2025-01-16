@@ -9,9 +9,9 @@ import { notFound } from 'next/navigation'
 import NewsletterForm from '@/components/newsletter-form'
 
 interface PageProps {
-  params: {
+  params: Promise<{
     slug: string
-  }
+  }>
 }
 
 export async function generateStaticParams() {
