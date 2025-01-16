@@ -1,0 +1,111 @@
+---
+title: Interactive Two Stacks Web
+summary: A project demonstrating two stacks implementation using a single array in Java.
+image: /images/projects/two-stacks-array-img.jpeg
+author: 'Sharmila'
+publishedAt: '2023-08-18'
+---
+
+This project demonstrates how to implement **two stacks using a single array** in Java. It explains the stack data structure and its common operations, providing multiple methods of implementation, examples, and Java code.
+
+## Features
+
+- **Two Stacks in One Array**: Efficient use of array space for two stacks.
+- **Space Efficient Method**: Avoid stack overflow using dynamic space allocation.
+- **Java Implementation**: Complete Java code provided for better understanding.
+- **Interactive Demo**: Visit the live demo for hands-on experience.
+
+## Technologies
+
+- **Java**: Programming language used to implement the project.
+- **Data Structures**: Stack implementation and operations.
+- **GitHub Pages**: Hosted the interactive demo online.
+
+## Live Demo
+
+Visit the website for an interactive demo: [Interactive Two Stacks Web](https://shar3579.github.io/Interactive-Two-Stacks-Web/).
+
+## Getting Started
+
+To understand this project, you can begin by reviewing the concepts of stacks and their operations. The following steps describe how to implement two stacks in one array:
+
+### Equal Division of Array
+
+This method divides the array into two equal halves, allocating each half to one stack.
+
+### Space Efficient Method
+
+This method allows both stacks to grow dynamically from opposite ends of the array.
+
+## Java Code Implementation
+
+Here is the basic structure of the Java implementation:
+
+```java
+class TwoStacks {
+    private int arr[];
+    private int size;
+    private int top1, top2;
+
+    // Constructor
+    TwoStacks(int n) {
+        size = n;
+        arr = new int[n];
+        top1 = -1;
+        top2 = size;
+    }
+
+    // Push operation for the first stack
+    void push1(int x) {
+        if (top1 < top2 - 1) {
+            top1++;
+            arr[top1] = x;
+        } else {
+            System.out.println("Stack Overflow");
+        }
+    }
+
+    // Push operation for the second stack
+    void push2(int x) {
+        if (top1 < top2 - 1) {
+            top2--;
+            arr[top2] = x;
+        } else {
+            System.out.println("Stack Overflow");
+        }
+    }
+
+    // Pop operation for the first stack
+    int pop1() {
+        if (top1 >= 0) {
+            int x = arr[top1];
+            top1--;
+            return x;
+        } else {
+            System.out.println("Stack Underflow");
+            return -1;
+        }
+    }
+
+    // Pop operation for the second stack
+    int pop2() {
+        if (top2 < size) {
+            int x = arr[top2];
+            top2++;
+            return x;
+        } else {
+            System.out.println("Stack Underflow");
+            return -1;
+        }
+    }
+}
+
+```
+## Deployment
+
+The live demo of this project is deployed on GitHub Pages. You can access the demo and see the stack operations in action:
+
+ [Interactive Two Stacks Web](https://shar3579.github.io/Interactive-Two-Stacks-Web/).
+
+## Conclusion
+This project is an excellent demonstration of how to implement and manage two stacks in a single array using Java. The space-efficient method ensures optimal use of resources, making it suitable for various applications in data structures and algorithms.
