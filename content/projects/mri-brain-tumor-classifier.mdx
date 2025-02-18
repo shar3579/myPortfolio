@@ -1,0 +1,90 @@
+---
+title: MRI Brain Tumor Detection Model
+summary: A Simple CNN-based model for brain tumor detection from MRI scans.
+image: /images/projects/brain_tumor_detection_model.jpg
+author: 'Sharmila'
+publishedAt: '2024-09-10'
+---
+
+The MRI Brain Tumor Detection Model is a simple yet effective deep learning model designed to detect brain tumors from MRI scan images. This project serves as a foundational version with significant potential for improvement through more advanced architectures and techniques.
+
+## Features
+
+- **CNN-Based Classification**: Utilizes a Convolutional Neural Network (CNN) to classify MRI scans into tumor and non-tumor categories.
+- **Image Preprocessing**: Cleans and preprocesses image data to ensure model accuracy.
+- **High Accuracy**:  Achieved 99.2% validation accuracy on 7023 MRI images.
+- **Performance Visualization**: Built as a straightforward implementation with scope for enhancement.
+
+
+
+## Technologies
+
+-  **TensorFlow/Keras**: Core deep learning framework.
+-  **OpenCV**: Image preprocessing and augmentation.
+-  **Matplotlib**: Data visualization.
+-  **Python**: Programming language.
+
+## See the Project
+
+Explore the project at [My Github Page](https://github.com/shar3579/mri-brain-tumor-classifier)
+
+## Getting Started
+
+To get started with the MRI Brain Tumor Detection Model, follow these steps:
+
+### Prerequisites
+
+Ensure you have the following installed on your machine:
+
+- Python (v3.8 or later)
+- pip
+
+
+### Installation
+
+1. Clone the repository:
+   ```bash
+   git clone "https://github.com/shar3579/mri-brain-tumor-classifier.git"
+   ```
+
+2. Install dependencies:
+   ```bash
+   pip install tensorflow opencv-python matplotlib numpy
+   ```
+
+3. Load the saved model:
+   ```bash
+   new_model = load_model(os.path.join('models','imageclassifier.h5'))
+   ```
+
+4. Input an MRI Scan of Brain after saving it in your local machine (check the jupyter file for reference):
+   ```bash
+   new_model.predict(np.expand_dims(resize/255, 0))
+   ```
+
+5. Check the Result
+
+## Model Overview
+
+The model uses a CNN architecture with multiple convolutional layers, max-pooling layers, and dense layers for classification. It processes MRI images to distinguish between images with tumors and those without.
+
+### Model Performance
+
+- **Precision**: 98.9%
+- **Recall**: 99.6%
+- **Accuracy**: 99.2%
+
+## Future Scope
+
+- **Incorporating Transfer Learning**: Enhance accuracy by using pre-trained models like InceptionV3 or ResNet.
+- **Implementing Web Interface**: Develop a user-friendly web application for real-time predictions.
+- **Dataset Expansion**: Include more diverse MRI datasets to improve generalization.
+- **Model Optimization**: Explore techniques like dropout, regularization, and hyperparameter tuning.
+---
+
+## Deployment
+
+In future, I aim to deploy this model using Flask or Streamlit for quick web-based interaction.
+
+## Conclusion
+The MRI Brain Tumor Detection Model demonstrates the potential of deep learning for medical image classification. While this version is simple, it lays the groundwork for more advanced and accurate models to assist in early diagnosis of brain tumors.
