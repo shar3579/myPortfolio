@@ -84,8 +84,7 @@ export default function Footer() {
           </div>
           <div className='mt-8 md:order-1 md:mt-0'>
             <p className='text-center text-xs leading-5 text-muted-foreground'>
-              &copy; {new Date().getFullYear()} Your Company. All rights
-              reserved.
+              &copy; {new Date().getFullYear()} Sharmila P Marupuru
             </p>
           </div>
         </div>
