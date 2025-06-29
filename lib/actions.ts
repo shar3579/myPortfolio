@@ -1,80 +1,99 @@
-// actions.ts
+// lib/actions.ts
 'use server'
 
 import { z } from 'zod'
-import nodemailer from 'nodemailer'
+import { Resend } from 'resend'
 import { ContactFormSchema, NewsletterFormSchema } from '@/lib/schemas'
 
 type ContactFormInputs = z.infer<typeof ContactFormSchema>
 type NewsletterFormInputs = z.infer<typeof NewsletterFormSchema>
-// Nodemailer transporter configuration
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER, // Your Gmail address
-    pass: process.env.EMAIL_APP_PASSWORD // Gmail App Password
-  }
-})
 
-// Helper function to generate email HTML
-function generateEmailHtml(data: ContactFormInputs) {
-  return `
-    <div>
-      <h1>Contact form submission</h1>
-      <p>From <strong>${data.name}</strong> at ${data.email}</p>
-      <h2>Message:</h2>
-      <p>${data.message}</p>
-    </div>
-  `
-}
+const resend = new Resend(process.env.RESEND_API_KEY)
 
-// Function to handle sending emails
+// Function to handle sending contact form emails
 export async function sendEmail(data: ContactFormInputs) {
   const result = ContactFormSchema.safeParse(data);
 
   if (!result.success) {
-    throw new Error('Validation failed: Invalid contact form inputs');
+    return { error: 'Validation failed: Invalid contact form inputs' };
   }
 
   try {
     const { name, email, message } = result.data;
 
-    // Email to you
-    const emailHtml = generateEmailHtml({ name, email, message });
-    const mailOptionsToYou = {
-      to: 'sharmila091104@gmail.com',
-      from: email,
-      replyTo: email,
+    // Email to you (the portfolio owner)
+    const { data: emailResult, error: emailError } = await resend.emails.send({
+      from: 'Portfolio Contact <onboarding@resend.dev>',
+      to: ['sharmila091104@gmail.com'], // Your email where you receive messages
       subject: `Contact Form Submission from ${name}`,
-      text: `Name: ${name}\nEmail: ${email}\nMessage: ${message}`,
-      html: emailHtml,
-    };
-    await transporter.sendMail(mailOptionsToYou);
+      replyTo: email, // Visitor's email for easy reply
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #333; border-bottom: 2px solid #007bff; padding-bottom: 10px;">
+            New Contact Form Submission
+          </h2>
+          
+          <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
+            <p style="margin: 0 0 10px 0;"><strong>Name:</strong> ${name}</p>
+            <p style="margin: 0 0 10px 0;"><strong>Email:</strong> ${email}</p>
+            <p style="margin: 0 0 10px 0;"><strong>Message:</strong></p>
+            <div style="background-color: white; padding: 15px; border-radius: 3px; border-left: 4px solid #007bff;">
+              ${message.replace(/\n/g, '<br>')}
+            </div>
+          </div>
+          
+          <p style="color: #666; font-size: 14px; margin-top: 30px;">
+            This email was sent from your portfolio's contact form.
+          </p>
+        </div>
+      `,
+    });
 
-    // Email to the sender
-    const emailHtmlForSender = `
-      <div>
-        <h1>Thank you for reaching out!</h1>
-        <p>Hi ${name},</p>
-        <p>Thank you for contacting me. I’ve received your message and will get back to you shortly.</p>
-        <p>Your message:</p>
-        <blockquote>${message}</blockquote>
-        <p>Best regards,<br>Sharmila</p>
-      </div>
-    `;
-    const mailOptionsToSender = {
-      to: email, // Sender's email
-      from: 'sharmila091104@gmail.com', // Your Gmail address
-      subject: 'Thank you for contacting me!',
-      text: `Hi ${name},\n\nThank you for contacting me. I’ve received your message and will get back to you shortly.\n\nYour message:\n${message}\n\nBest regards,\nSharmila`,
-      html: emailHtmlForSender,
-    };
-    await transporter.sendMail(mailOptionsToSender);
+    if (emailError) {
+      console.error('Failed to send email to you:', emailError);
+      return { error: 'Failed to send email' };
+    }
+
+    // Auto-reply email to the visitor
+    const { error: replyError } = await resend.emails.send({
+      from: 'Sharmila <onboarding@resend.dev>',
+      to: [email], // Visitor's email
+      subject: 'Thank you for reaching out!',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #333; border-bottom: 2px solid #007bff; padding-bottom: 10px;">
+            Thank you for reaching out!
+          </h2>
+          
+          <p>Hi ${name},</p>
+          
+          <p>Thank you for contacting me through my portfolio. I've received your message and will get back to you shortly.</p>
+          
+          <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p style="margin: 0 0 10px 0;"><strong>Your message:</strong></p>
+            <div style="background-color: white; padding: 15px; border-radius: 3px; border-left: 4px solid #28a745;">
+              ${message.replace(/\n/g, '<br>')}
+            </div>
+          </div>
+          
+          <p>Best regards,<br><strong>Sharmila</strong></p>
+          
+          <p style="color: #666; font-size: 14px; margin-top: 30px;">
+            This is an automated response. Please don't reply to this email.
+          </p>
+        </div>
+      `,
+    });
+
+    if (replyError) {
+      console.error('Failed to send auto-reply:', replyError);
+      // Don't return error here - the main email was sent successfully
+    }
 
     return { success: true };
   } catch (error) {
     console.error('Failed to send email:', error);
-    return { error };
+    return { error: 'Failed to send email' };
   }
 }
 
@@ -82,35 +101,52 @@ export async function subscribe(data: NewsletterFormInputs) {
   const result = NewsletterFormSchema.safeParse(data)
 
   if (!result.data || result.error) {
-    throw new Error('Failed to subscribe')
+    return { error: 'Failed to subscribe' };
   }
 
   try {
     const { email } = result.data
 
-    // Generate the welcome email content
-    const welcomeHtml = `
-      <div>
-        <h1>Welcome to Our Newsletter!</h1>
-        <p>Hi there,</p>
-        <p>Thank you for subscribing to our newsletter. We're excited to keep you updated with the latest news and updates!</p>
-        <p>Best regards,<br>Sharmila</p>
-      </div>
-    `;
+    // Send welcome email to subscriber
+    const { error } = await resend.emails.send({
+      from: 'Sharmila <onboarding@resend.dev>',
+      to: [email],
+      subject: 'Welcome to My Portfolio!',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #333; border-bottom: 2px solid #007bff; padding-bottom: 10px;">
+            Welcome to My Portfolio!
+          </h2>
+          
+          <p>Hi there,</p>
+          
+          <p>Thank you for subscribing to my Portfolio! I'm excited to keep you updated with my latest projects, blog posts, and insights.</p>
+          
+          <p>You can expect to hear from me with:</p>
+          <ul style="color: #555;">
+            <li>New project updates and case studies</li>
+            <li>Technical articles and tutorials</li>
+            <li>Industry insights and trends</li>
+            <li>Behind-the-scenes content</li>
+          </ul>
+          
+          <p>Best regards,<br><strong>Sharmila</strong></p>
+          
+          <p style="color: #666; font-size: 14px; margin-top: 30px;">
+            If you didn't sign up for this newsletter, you can safely ignore this email.
+          </p>
+        </div>
+      `,
+    });
 
-    const mailOptions = {
-      to: email, // Send the welcome email to the subscriber
-      from: process.env.EMAIL_USER, // Your Gmail address
-      subject: 'Welcome to Our Newsletter!',
-      text: `Hi there,\n\nThank you for subscribing to my newsletter. I'm excited to keep you updated with the latest news and updates!\n\nBest regards,\nSharmila`,
-      html: welcomeHtml,
-    };
-
-    // Send the welcome email using Nodemailer
-    await transporter.sendMail(mailOptions);
+    if (error) {
+      console.error('Failed to send welcome email:', error);
+      return { error: 'Failed to send welcome email' };
+    }
 
     return { success: true };
   } catch (error) {
-    return { error }
+    console.error('Newsletter subscription error:', error);
+    return { error: 'Failed to subscribe' };
   }
 }
