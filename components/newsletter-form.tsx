@@ -1,6 +1,6 @@
 'use client'
 
-import { z } from 'zod'
+import { set, z } from 'zod'
 import { toast } from 'sonner'
 import { SubmitHandler, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 
 import { subscribe } from '@/lib/actions'
 import { Card, CardContent } from '@/components/ui/card'
+import { useState } from 'react'
 
 type Inputs = z.infer<typeof NewsletterFormSchema>
 
@@ -17,25 +18,37 @@ export default function NewsletterForm() {
   const {
     register,
     handleSubmit,
+    formState: { errors, isSubmitting },
     reset,
-    formState: { errors, isSubmitting }
   } = useForm<Inputs>({
     resolver: zodResolver(NewsletterFormSchema),
-    defaultValues: {
-      email: ''
-    }
-  })
+  });
 
-  const processForm: SubmitHandler<Inputs> = async data => {
-    const result = await subscribe(data)
+  const onSubmit: SubmitHandler<Inputs> = async (data) => {
+    try {
+      const response = await fetch('/api/newsletter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: data.email })
+      })
+      if (!response.ok) {
+        const errorData = await response.json()
+        toast.error(errorData.error || 'An error occurred! Please try again.')
+        return
+      }
 
-    if (result?.error) {
+      const result = await response.json()
+
+      if (result?.error) {
+        toast.error('An error occurred! Please try again.')
+        return;
+      }
+
+      toast.success('Subscribed successfully!')
+      reset()
+    } catch (error) {
       toast.error('An error occurred! Please try again.')
-      return
     }
-
-    toast.success('Subscribed successfully!')
-    reset()
   }
 
   return (
@@ -50,7 +63,7 @@ export default function NewsletterForm() {
           </div>
 
           <form
-            onSubmit={handleSubmit(processForm)}
+            onSubmit={handleSubmit(onSubmit)}
             className='flex flex-col items-start gap-3'
           >
             <div className='w-full'>

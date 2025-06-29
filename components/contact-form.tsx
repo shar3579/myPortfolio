@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { sendEmail } from '@/lib/actions'
+import { useState } from 'react'
 
 type Inputs = z.infer<typeof ContactFormSchema>
 
@@ -18,16 +19,16 @@ export default function ContactForm() {
   const {
     register,
     handleSubmit,
+    formState: { errors, isSubmitting },
     reset,
-    formState: { errors, isSubmitting }
   } = useForm<Inputs>({
     resolver: zodResolver(ContactFormSchema),
     defaultValues: {
       name: '',
       email: '',
-      message: ''
-    }
-  })
+      message: '',
+    },
+  });
 
   const processForm: SubmitHandler<Inputs> = async data => {
     try {
@@ -39,9 +40,13 @@ export default function ContactForm() {
       }
   
       toast.success('Message sent successfully!')
-      reset()
-    } catch (error) {
-      toast.error('An unexpected error occurred! Please try again.')
+      reset(); // Reset form
+    } catch (error: any) {
+      if (error instanceof Error) {
+        toast.error(error.message || 'An unexpected error occurred! Please try again.')
+      } else {
+        toast.error('An unexpected error occurred! Please try again.')
+      }
       console.error('Form submission error:', error)
     }
   }
