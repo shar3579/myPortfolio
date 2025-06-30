@@ -1,55 +1,23 @@
-// contact-form.tsx
 'use client'
 
-import { z } from 'zod'
-import Link from 'next/link'
+import { useEffect } from 'react'
+import { useActionState } from 'react'
+import { useFormStatus } from 'react-dom'
 import { toast } from 'sonner'
-import { SubmitHandler, useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { ContactFormSchema } from '@/lib/schemas'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { sendEmail } from '@/lib/actions'
-import { useState } from 'react'
+import { submitContactForm } from '@/app/actions/contact'
 
-type Inputs = z.infer<typeof ContactFormSchema>
+const initialState = { success: false, error: '' }
 
 export default function ContactForm() {
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-    reset,
-  } = useForm<Inputs>({
-    resolver: zodResolver(ContactFormSchema),
-    defaultValues: {
-      name: '',
-      email: '',
-      message: '',
-    },
-  });
+  const [state, formAction] = useActionState(submitContactForm, initialState)
 
-  const processForm: SubmitHandler<Inputs> = async data => {
-    try {
-      const result = await sendEmail(data)
-  
-      if (result?.error) {
-        toast.error('An error occurred! Please try again.')
-        return
-      }
-  
-      toast.success('Message sent successfully!')
-      reset(); // Reset form
-    } catch (error: any) {
-      if (error instanceof Error) {
-        toast.error(error.message || 'An unexpected error occurred! Please try again.')
-      } else {
-        toast.error('An unexpected error occurred! Please try again.')
-      }
-      console.error('Form submission error:', error)
-    }
-  }
+  useEffect(() => {
+    if (state.success) toast.success('Message sent successfully!')
+    if (state.error) toast.error(state.error)
+  }, [state])
 
   return (
     <section className='relative isolate'>
@@ -91,7 +59,7 @@ export default function ContactForm() {
       {/* Form */}
       <div className='relative'>
         <form
-          onSubmit={handleSubmit(processForm)}
+          action={formAction}
           className='mt-16 lg:flex-auto'
           noValidate
         >
@@ -100,16 +68,12 @@ export default function ContactForm() {
             <div>
               <Input
                 id='name'
+                name='name'
                 type='text'
                 placeholder='Name'
                 autoComplete='given-name'
-                {...register('name')}
+                required
               />
-              {errors.name?.message && (
-                <p className='ml-1 mt-2 text-sm text-rose-400'>
-                  {errors.name.message}
-                </p>
-              )}
             </div>
 
             {/* Email */}
@@ -117,43 +81,41 @@ export default function ContactForm() {
               <Input
                 type='email'
                 id='email'
+                name='email'
                 autoComplete='email'
                 placeholder='Email'
-                {...register('email')}
+                required
               />
-              {errors.email?.message && (
-                <p className='ml-1 mt-2 text-sm text-rose-400'>
-                  {errors.email.message}
-                </p>
-              )}
             </div>
 
             {/* Message */}
             <div className='sm:col-span-2'>
               <Textarea
+                name='message'
                 rows={4}
                 placeholder='Message'
-                {...register('message')}
+                required
               />
-              {errors.message?.message && (
-                <p className='ml-1 mt-2 text-sm text-rose-400'>
-                  {errors.message.message}
-                </p>
-              )}
             </div>
           </div>
           <div className='mt-6'>
-            <Button
-              type='submit'
-              disabled={isSubmitting}
-              className='w-full disabled:opacity-50'
-            >
-              {isSubmitting ? 'Submitting...' : 'Submit'}
-            </Button>
+            <SubmitButton />
           </div>
-
         </form>
       </div>
     </section>
+  )
+}
+
+function SubmitButton() {
+  const { pending } = useFormStatus()
+  return (
+    <Button
+      type='submit'
+      disabled={pending}
+      className='w-full disabled:opacity-50'
+    >
+      {pending ? 'Submitting...' : 'Submit'}
+    </Button>
   )
 }
