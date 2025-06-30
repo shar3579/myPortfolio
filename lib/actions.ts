@@ -1,4 +1,4 @@
-// lib/actions.ts - Fixed version for Vercel
+// lib/actions.ts - Updated for better Vercel compatibility
 'use server'
 
 import { z } from 'zod'
@@ -8,11 +8,12 @@ import { ContactFormSchema, NewsletterFormSchema } from '@/lib/schemas'
 type ContactFormInputs = z.infer<typeof ContactFormSchema>
 type NewsletterFormInputs = z.infer<typeof NewsletterFormSchema>
 
-// Initialize Resend with error handling
+// Initialize Resend with better error handling
 const getResendClient = () => {
   const apiKey = process.env.RESEND_API_KEY
   if (!apiKey) {
-    throw new Error('RESEND_API_KEY is not configured')
+    console.error('RESEND_API_KEY environment variable is not set')
+    throw new Error('Email service is not configured')
   }
   return new Resend(apiKey)
 }
@@ -20,24 +21,28 @@ const getResendClient = () => {
 // Function to handle sending contact form emails
 export async function sendEmail(data: ContactFormInputs) {
   try {
+    console.log('Starting sendEmail function...')
+    
     const result = ContactFormSchema.safeParse(data);
-
     if (!result.success) {
+      console.error('Validation failed:', result.error.errors)
       return { 
-        error: 'Validation failed: Invalid contact form inputs',
+        error: 'Please fill all fields correctly',
         details: result.error.errors 
       };
     }
 
+    console.log('Validation passed, initializing Resend...')
     const resend = getResendClient()
     const { name, email, message } = result.data;
 
+    console.log('Sending email to portfolio owner...')
     // Email to you (the portfolio owner)
     const { data: emailResult, error: emailError } = await resend.emails.send({
       from: 'Portfolio Contact <onboarding@resend.dev>',
-      to: ['sharmila091104@gmail.com'], // Your email where you receive messages
+      to: ['sharmila091104@gmail.com'],
       subject: `Contact Form Submission from ${name}`,
-      replyTo: email, // Visitor's email for easy reply
+      replyTo: email,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #333; border-bottom: 2px solid #007bff; padding-bottom: 10px;">
@@ -61,14 +66,18 @@ export async function sendEmail(data: ContactFormInputs) {
     });
 
     if (emailError) {
-      console.error('Failed to send email to you:', emailError);
-      return { error: 'Failed to send email', details: emailError };
+      console.error('Failed to send email to portfolio owner:', emailError);
+      return { 
+        error: 'Failed to send your message. Please try again.',
+        details: emailError 
+      };
     }
 
+    console.log('Main email sent successfully, sending auto-reply...')
     // Auto-reply email to the visitor
     const { error: replyError } = await resend.emails.send({
       from: 'Sharmila <onboarding@resend.dev>',
-      to: [email], // Visitor's email
+      to: [email],
       subject: 'Thank you for reaching out!',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -97,48 +106,68 @@ export async function sendEmail(data: ContactFormInputs) {
     });
 
     if (replyError) {
-      console.error('Failed to send auto-reply:', replyError);
-      // Don't return error here - the main email was sent successfully
+      console.error('Failed to send auto-reply (but main email was sent):', replyError);
     }
 
+    console.log('Contact form submission completed successfully')
     return { success: true };
+
   } catch (error) {
-    console.error('Failed to send email:', error);
+    console.error('Contact form error:', error);
+    
+    // More specific error handling
+    if (error instanceof Error) {
+      if (error.message.includes('not configured')) {
+        return { 
+          error: 'Email service is temporarily unavailable. Please try again later.',
+          details: 'Configuration error'
+        };
+      }
+      return { 
+        error: 'Failed to send your message. Please try again.',
+        details: error.message 
+      };
+    }
+    
     return { 
-      error: 'Failed to send email', 
-      details: error instanceof Error ? error.message : 'Unknown error' 
+      error: 'An unexpected error occurred. Please try again.',
+      details: 'Unknown error' 
     };
   }
 }
 
 export async function subscribe(data: NewsletterFormInputs) {
   try {
+    console.log('Starting newsletter subscription...')
+    
     const result = NewsletterFormSchema.safeParse(data)
-
     if (!result.success) {
+      console.error('Newsletter validation failed:', result.error.errors)
       return { 
-        error: 'Failed to subscribe - Invalid email',
+        error: 'Please enter a valid email address',
         details: result.error.errors 
       };
     }
 
+    console.log('Newsletter validation passed, initializing Resend...')
     const resend = getResendClient()
     const { email } = result.data
 
+    console.log('Sending welcome email...')
     // Send welcome email to subscriber
     const { error } = await resend.emails.send({
       from: 'Sharmila <onboarding@resend.dev>',
       to: [email],
-      subject: 'Welcome to My Portfolio!',
+      subject: 'Welcome to My Portfolio Newsletter!',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #333; border-bottom: 2px solid #007bff; padding-bottom: 10px;">
-            Welcome to My Portfolio!
+            Welcome to My Portfolio Newsletter!
           </h2>
           
           <p>Hi there,</p>
           
-          <p>Thank you for subscribing to my Portfolio! I'm excited to keep you updated with my latest projects, blog posts, and insights.</p>
+          <p>Thank you for subscribing to my portfolio newsletter! I'm excited to keep you updated with my latest projects, blog posts, and insights.</p>
           
           <p>You can expect to hear from me with:</p>
           <ul style="color: #555;">
@@ -160,102 +189,34 @@ export async function subscribe(data: NewsletterFormInputs) {
     if (error) {
       console.error('Failed to send welcome email:', error);
       return { 
-        error: 'Failed to send welcome email',
+        error: 'Failed to complete subscription. Please try again.',
         details: error 
       };
     }
 
+    console.log('Newsletter subscription completed successfully')
     return { success: true };
+
   } catch (error) {
     console.error('Newsletter subscription error:', error);
+    
+    // More specific error handling
+    if (error instanceof Error) {
+      if (error.message.includes('not configured')) {
+        return { 
+          error: 'Newsletter service is temporarily unavailable. Please try again later.',
+          details: 'Configuration error'
+        };
+      }
+      return { 
+        error: 'Failed to subscribe. Please try again.',
+        details: error.message 
+      };
+    }
+    
     return { 
-      error: 'Failed to subscribe',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'An unexpected error occurred. Please try again.',
+      details: 'Unknown error'
     };
   }
 }
-
-// Alternative: Create API routes as backup (more reliable on Vercel)
-// pages/api/contact.ts
-/*
-import type { NextApiRequest, NextApiResponse } from 'next'
-import { ContactFormSchema } from '@/lib/schemas'
-import { Resend } from 'resend'
-
-const resend = new Resend(process.env.RESEND_API_KEY)
-
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' })
-  }
-
-  try {
-    const result = ContactFormSchema.safeParse(req.body)
-    
-    if (!result.success) {
-      return res.status(400).json({ error: 'Invalid form data' })
-    }
-
-    const { name, email, message } = result.data
-
-    const { error } = await resend.emails.send({
-      from: 'Portfolio Contact <onboarding@resend.dev>',
-      to: ['sharmila091104@gmail.com'],
-      subject: `Contact Form Submission from ${name}`,
-      replyTo: email,
-      html: `<h2>New Contact Form Submission</h2>
-             <p><strong>Name:</strong> ${name}</p>
-             <p><strong>Email:</strong> ${email}</p>
-             <p><strong>Message:</strong> ${message}</p>`
-    })
-
-    if (error) {
-      return res.status(500).json({ error: 'Failed to send email' })
-    }
-
-    res.status(200).json({ success: true })
-  } catch (error) {
-    res.status(500).json({ error: 'Internal server error' })
-  }
-}
-*/
-
-// pages/api/newsletter.ts
-/*
-import type { NextApiRequest, NextApiResponse } from 'next'
-import { NewsletterFormSchema } from '@/lib/schemas'
-import { Resend } from 'resend'
-
-const resend = new Resend(process.env.RESEND_API_KEY)
-
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' })
-  }
-
-  try {
-    const result = NewsletterFormSchema.safeParse(req.body)
-    
-    if (!result.success) {
-      return res.status(400).json({ error: 'Invalid email' })
-    }
-
-    const { email } = result.data
-
-    const { error } = await resend.emails.send({
-      from: 'Sharmila <onboarding@resend.dev>',
-      to: [email],
-      subject: 'Welcome to My Portfolio!',
-      html: `<h2>Welcome!</h2><p>Thanks for subscribing to my portfolio newsletter!</p>`
-    })
-
-    if (error) {
-      return res.status(500).json({ error: 'Failed to send welcome email' })
-    }
-
-    res.status(200).json({ success: true })
-  } catch (error) {
-    res.status(500).json({ error: 'Internal server error' })
-  }
-}
-*/
